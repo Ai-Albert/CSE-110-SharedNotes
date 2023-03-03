@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -107,22 +108,24 @@ public class NoteRepository {
         // You may (but don't have to) want to cache the LiveData's for each title, so that
         // you don't create a new polling thread every time you call getRemote with the same title.
         // You don't need to worry about killing background threads.
-        registerNoteListener(title);
+        if (!notes.containsKey(title)) {
+            var executor = Executors.newSingleThreadScheduledExecutor();
+
+            var liveNote = new MutableLiveData<Note>();
+            var future = executor.schedule(() -> {
+                liveNote.postValue(NoteAPI.provide().getNoteAsync(title));
+            }, 3, TimeUnit.SECONDS);
+
+            var note = new MediatorLiveData<Note>();
+            note.postValue(NoteAPI.provide().getNoteAsync(title));
+            note.addSource(liveNote, note::postValue);
+
+            executors.put(title, executor);
+            liveNotes.put(title, liveNote);
+            futures.put(title, future);
+            notes.put(title, note);
+        }
         return notes.get(title);
-    }
-
-    private void registerNoteListener(String title) {
-        var executor = executors.containsKey(title) ? executors.get(title) : Executors.newSingleThreadScheduledExecutor();
-        var liveNote = new MutableLiveData<Note>();
-        var future = executor.schedule(() -> liveNote.postValue(NoteAPI.provide().getNoteAsync(title)), 3, TimeUnit.SECONDS);
-
-        var note = new MediatorLiveData<Note>();
-        note.addSource(liveNote, note::postValue);
-
-        executors.put(title, executor);
-        liveNotes.put(title, liveNote);
-        futures.put(title, future);
-        notes.put(title, note);
     }
 
     public void upsertRemote(Note note) {

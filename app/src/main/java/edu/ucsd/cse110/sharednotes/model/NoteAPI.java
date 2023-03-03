@@ -99,9 +99,7 @@ public class NoteAPI {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        System.out.println("**********");
         System.out.println(body);
-        System.out.println("**********");
 
         return Note.fromJSON(body);
     }
@@ -126,8 +124,6 @@ public class NoteAPI {
 
         try (var response = client.newCall(request).execute()) {
             assert response.body() != null;
-            System.out.println("PUT NOTE");
-            System.out.println(response.body().string());
         } catch (Exception e) {
             e.printStackTrace();
         }
