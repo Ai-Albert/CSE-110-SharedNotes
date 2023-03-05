@@ -5,33 +5,18 @@ import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 
-import java.util.HashMap;
-import java.time.Instant;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class NoteRepository {
     private final NoteDao dao;
-    Map<String, ScheduledExecutorService> executors;
-    Map<String, ScheduledFuture<?>> futures;
-    Map<String, MutableLiveData<Note>> liveNotes;
-    Map<String, MediatorLiveData<Note>> notes;
 
     private ScheduledFuture<?> poller; // what could this be for... hmm?
 
     public NoteRepository(NoteDao dao) {
         this.dao = dao;
-        this.executors = new HashMap<>();
-        this.futures = new HashMap<>();
-        this.liveNotes = new HashMap<>();
-        this.notes = new HashMap<>();
     }
 
     // Synced Methods
@@ -68,6 +53,7 @@ public class NoteRepository {
     }
 
     public void upsertSynced(Note note) {
+        note.version += 1;
         upsertLocal(note);
         upsertRemote(note);
     }
@@ -84,7 +70,6 @@ public class NoteRepository {
     }
 
     public void upsertLocal(Note note) {
-        note.version = note.version + 1;
         dao.upsert(note);
     }
 
@@ -114,29 +99,18 @@ public class NoteRepository {
         // You may (but don't have to) want to cache the LiveData's for each title, so that
         // you don't create a new polling thread every time you call getRemote with the same title.
         // You don't need to worry about killing background threads.
-        if (!notes.containsKey(title)) {
-            var executor = Executors.newSingleThreadScheduledExecutor();
+        var executor = Executors.newSingleThreadScheduledExecutor();
 
-            var liveNote = new MutableLiveData<Note>();
-            var future = executor.schedule(() -> {
-                liveNote.postValue(NoteAPI.provide().getNoteAsync(title));
-            }, 3, TimeUnit.SECONDS);
+        var liveNote = new MutableLiveData<Note>();
+        poller = executor.schedule(() -> {
+            liveNote.postValue(NoteAPI.provide().getNote(title));
+        }, 3, TimeUnit.SECONDS);
 
-            var note = new MediatorLiveData<Note>();
-            note.postValue(NoteAPI.provide().getNoteAsync(title));
-            note.addSource(liveNote, note::postValue);
-
-            executors.put(title, executor);
-            liveNotes.put(title, liveNote);
-            futures.put(title, future);
-            notes.put(title, note);
-        }
-        return notes.get(title);
+        return liveNote;
     }
 
     public void upsertRemote(Note note) {
         // TODO: Implement upsertRemote! <RESOLVED>
-
         NoteAPI.provide().putNoteAsync(note);
     }
 }
