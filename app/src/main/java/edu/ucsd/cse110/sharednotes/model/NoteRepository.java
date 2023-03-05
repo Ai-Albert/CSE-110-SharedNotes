@@ -102,9 +102,9 @@ public class NoteRepository {
         var executor = Executors.newSingleThreadScheduledExecutor();
 
         var liveNote = new MutableLiveData<Note>();
-        poller = executor.schedule(() -> {
+        poller = executor.scheduleAtFixedRate(() -> {
             liveNote.postValue(NoteAPI.provide().getNote(title));
-        }, 3, TimeUnit.SECONDS);
+        }, 0, 3000, TimeUnit.MILLISECONDS);
 
         return liveNote;
     }

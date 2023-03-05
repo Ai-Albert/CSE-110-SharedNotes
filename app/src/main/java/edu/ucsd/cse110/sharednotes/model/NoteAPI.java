@@ -3,28 +3,18 @@ package edu.ucsd.cse110.sharednotes.model;
 import android.util.Log;
 
 import androidx.annotation.AnyThread;
-import androidx.annotation.MainThread;
-import androidx.annotation.NonNull;
 import androidx.annotation.WorkerThread;
 
-import com.google.gson.Gson;
-
-import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.Headers;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
 
 public class NoteAPI {
     // TODO: Implement the API using OkHttp! <RESOLVED>
@@ -80,10 +70,9 @@ public class NoteAPI {
     @AnyThread
     public Future<String> echoAsync(String msg) {
         var executor = Executors.newSingleThreadExecutor();
-        var future = executor.submit(() -> echo(msg));
 
         // We can use future.get(1, SECONDS) to wait for the result.
-        return future;
+        return executor.submit(() -> echo(msg));
     }
 
     public Note getNote(String title) {
