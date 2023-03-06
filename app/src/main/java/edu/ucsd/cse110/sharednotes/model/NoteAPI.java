@@ -113,6 +113,7 @@ public class NoteAPI {
 
         try (var response = client.newCall(request).execute()) {
             assert response.body() != null;
+            System.out.println(response.body().toString());
         } catch (Exception e) {
             e.printStackTrace();
         }
